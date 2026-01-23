@@ -7,17 +7,57 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("PATIENT");
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
     const navigate = useNavigate();
 
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!name.trim()) {
+      newErrors.name = "Name is required";
+    } else if (name.length < 2) {
+      newErrors.name = "Name must be at least 2 characters";
+    }
+    
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = "Email address is invalid";
+    }
+    
+    if (!password) {
+      newErrors.password = "Password is required";
+    } else if (password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      newErrors.password = "Password must contain at least one uppercase letter, one lowercase letter, and one number";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const signup = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
     try {
       await api.post('/api/auth/signup', { name, email, password, role });
       alert("Signup successful! You can now log in.");
       navigate('/'); // Redirect to login page
     } catch (error) {
       console.error("Signup error:", error);
-      alert(`Signup failed: ${error.message}`);
+      if (error.message.includes('Email already exists')) {
+        setErrors({ email: 'Email already registered' });
+      } else {
+        alert(`Signup failed: ${error.message}`);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -35,9 +75,13 @@ export default function Signup() {
               id="name"
               type="text" 
               placeholder="John Doe" 
+              value={name}
               onChange={e => setName(e.target.value)} 
-              className="w-full px-4 py-2 text-gray-700 bg-white bg-opacity-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              className={`w-full px-4 py-2 text-gray-700 bg-white bg-opacity-50 border rounded-lg focus:ring-blue-500 focus:border-blue-500 ${
+                errors.name ? 'border-red-500' : 'border-gray-300'
+              }`}
             />
+            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
           </div>
           <div>
             <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-700">Email Address</label>
@@ -45,9 +89,13 @@ export default function Signup() {
               id="email"
               type="email" 
               placeholder="your.email@example.com" 
+              value={email}
               onChange={e => setEmail(e.target.value)} 
-              className="w-full px-4 py-2 text-gray-700 bg-white bg-opacity-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              className={`w-full px-4 py-2 text-gray-700 bg-white bg-opacity-50 border rounded-lg focus:ring-blue-500 focus:border-blue-500 ${
+                errors.email ? 'border-red-500' : 'border-gray-300'
+              }`}
             />
+            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
           </div>
           <div>
             <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-700">Password</label>
@@ -55,9 +103,13 @@ export default function Signup() {
               id="password"
               type="password" 
               placeholder="••••••••" 
+              value={password}
               onChange={e => setPassword(e.target.value)} 
-              className="w-full px-4 py-2 text-gray-700 bg-white bg-opacity-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              className={`w-full px-4 py-2 text-gray-700 bg-white bg-opacity-50 border rounded-lg focus:ring-blue-500 focus:border-blue-500 ${
+                errors.password ? 'border-red-500' : 'border-gray-300'
+              }`}
             />
+            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
           </div>
           <div>
             <label htmlFor="role" className="block mb-2 text-sm font-medium text-gray-700">I am a...</label>
@@ -73,9 +125,10 @@ export default function Signup() {
         </div>
         <button 
           onClick={signup} 
-          className="w-full px-4 py-2 font-semibold text-white bg-blue-500 bg-opacity-70 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all duration-300"
+          disabled={isLoading}
+          className="w-full px-4 py-2 font-semibold text-white bg-blue-500 bg-opacity-70 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Sign Up
+          {isLoading ? 'Signing Up...' : 'Sign Up'}
         </button>
         <p className="text-sm text-center text-gray-700">
           Already have an account?{" "}

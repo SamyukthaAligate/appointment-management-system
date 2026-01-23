@@ -108,6 +108,20 @@ export default function PatientDashboard({ user }) {
     }
   }, [error]);
 
+  const handleCancelAppointment = async (appointmentId) => {
+    if (!window.confirm('Are you sure you want to cancel this appointment?')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/api/appointments/${appointmentId}`);
+      alert('Appointment cancelled successfully!');
+      fetchAppointments(); // Refresh the list
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const fetchInitialData = useCallback(async () => {
     setLoading(true);
     try {
@@ -147,13 +161,28 @@ export default function PatientDashboard({ user }) {
         ) : (
           <ul className="divide-y divide-gray-200">
             {appointments.map(appt => (
-              <li key={appt._id} className="py-4">
-                <p className="font-semibold">Dr. {appt.doctor.name}</p>
-                <p className="text-sm text-gray-600">Date: {new Date(appt.date).toLocaleDateString()}</p>
-                <p className="text-sm text-gray-600">Time: {appt.timeSlot}</p>
-                <p className="text-sm">
-                  Status: <span className={`font-semibold ${appt.status === 'APPROVED' ? 'text-green-600' : 'text-yellow-600'}`}>{appt.status}</span>
-                </p>
+              <li key={appt._id} className="py-4 flex justify-between items-center">
+                <div>
+                  <p className="font-semibold">Dr. {appt.doctor.name}</p>
+                  <p className="text-sm text-gray-600">Date: {new Date(appt.date).toLocaleDateString()}</p>
+                  <p className="text-sm text-gray-600">Time: {appt.timeSlot}</p>
+                  <p className="text-sm">
+                    Status: <span className={`font-semibold ${
+                      appt.status === 'APPROVED' ? 'text-green-600' : 
+                      appt.status === 'CANCELLED' ? 'text-red-600' :
+                      appt.status === 'COMPLETED' ? 'text-blue-600' :
+                      'text-yellow-600'
+                    }`}>{appt.status}</span>
+                  </p>
+                </div>
+                {appt.status === 'PENDING' && (
+                  <button
+                    onClick={() => handleCancelAppointment(appt._id)}
+                    className="px-3 py-1 text-sm font-semibold text-white bg-red-500 rounded-md hover:bg-red-600"
+                  >
+                    Cancel
+                  </button>
+                )}
               </li>
             ))}
           </ul>

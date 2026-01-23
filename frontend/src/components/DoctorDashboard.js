@@ -52,7 +52,12 @@ export default function DoctorDashboard({ user }) {
                   <p className="text-sm text-gray-600">Time: {appt.timeSlot}</p>
                 </div>
                 <div>
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${appt.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    appt.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 
+                    appt.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                    appt.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
                     {appt.status}
                   </span>
                   <select 

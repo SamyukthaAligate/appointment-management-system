@@ -177,4 +177,43 @@ router.put("/:id/status", async (req, res) => {
   }
 });
 
+// @route   DELETE /api/appointments/:id
+// @desc    Cancel an appointment (Patients only)
+// @access  Private (Patients only)
+router.delete("/:id", async (req, res) => {
+  // Only patients can cancel their own appointments
+  if (req.user.role !== "PATIENT") {
+    return res.status(403).json({ message: "Forbidden: Only patients can cancel appointments." });
+  }
+
+  try {
+    const appointment = await Appointment.findById(req.params.id);
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found." });
+    }
+
+    // Ensure the patient cancelling the appointment is the one who booked it
+    if (appointment.patient.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Forbidden: You can only cancel your own appointments." });
+    }
+
+    // Business rule: Patients cannot cancel an appointment once it is Approved
+    if (appointment.status === "APPROVED") {
+      return res.status(400).json({ message: "Cannot cancel an already approved appointment. Please contact the doctor." });
+    }
+
+    // Business rule: Cannot cancel completed appointments
+    if (appointment.status === "COMPLETED") {
+      return res.status(400).json({ message: "Cannot cancel a completed appointment." });
+    }
+
+    appointment.status = "CANCELLED";
+    const cancelledAppointment = await appointment.save();
+    res.json({ message: "Appointment cancelled successfully.", appointment: cancelledAppointment });
+  } catch (error) {
+    res.status(500).json({ message: "Server error while cancelling appointment.", error });
+  }
+});
+
 module.exports = router;

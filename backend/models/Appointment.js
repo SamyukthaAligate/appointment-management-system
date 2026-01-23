@@ -11,7 +11,7 @@ const AppointmentSchema = new mongoose.Schema({
     enum: ["PENDING", "APPROVED", "COMPLETED", "CANCELLED"],
     default: "PENDING"
   }
-});
+}, { timestamps: true });
 
 AppointmentSchema.index({ doctor: 1, date: 1, timeSlot: 1 }, { unique: true });
 AppointmentSchema.index({ patient: 1 });
