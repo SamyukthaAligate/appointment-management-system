@@ -1,68 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import api from '../services/api';
 
 export default function DoctorDashboard({ user }) {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/appointments', {
-          headers: { 'x-auth-token': token },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch appointments');
-        }
-
-        const data = await response.json();
-        setAppointments(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAppointments();
-  }, []);
-
-  const fetchAppointments = async () => {
-    setLoading(true);
+  const fetchAppointments = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/appointments', {
-        headers: { 'x-auth-token': token },
-      });
-      if (!response.ok) throw new Error('Failed to fetch appointments');
-      const data = await response.json();
+      setLoading(true);
+      const data = await api.get('/api/appointments');
       setAppointments(data);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
 
   const handleStatusUpdate = async (appointmentId, newStatus) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/appointments/${appointmentId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.message || 'Failed to update status.');
-      }
-
+      await api.put(`/api/appointments/${appointmentId}/status`, { status: newStatus });
       // Refresh the list to show the updated status
       fetchAppointments();
     } catch (err) {

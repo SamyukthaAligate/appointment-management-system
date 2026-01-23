@@ -5,7 +5,13 @@ const JWT_SECRET = "your_super_secret_key_change_this";
 
 module.exports = function (req, res, next) {
   // Get token from the header
-  const token = req.header("x-auth-token");
+  const authHeader = req.header("Authorization");
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: "No token, authorization denied" });
+  }
+
+  const token = authHeader.split(' ')[1];
 
   // Check if not token
   if (!token) {

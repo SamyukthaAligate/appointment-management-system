@@ -1,72 +1,93 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import api from '../services/api';
 
 const AppointmentForm = ({ doctors, onBookingSuccess }) => {
-  const [selectedDoctor, setSelectedDoctor] = useState('');
+  const [selectedDoctorId, setSelectedDoctorId] = useState('');
   const [date, setDate] = useState('');
   const [timeSlot, setTimeSlot] = useState('');
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [error, setError] = useState('');
+
+  // Fetch available slots when doctor and date are selected
+  useEffect(() => {
+    const fetchAvailableSlots = async () => {
+      if (!selectedDoctorId || !date) {
+        setAvailableSlots([]);
+        return;
+      }
+
+      setLoadingSlots(true);
+      try {
+        const slots = await api.get(`/api/appointments/slots/${selectedDoctorId}/${date}`);
+        setAvailableSlots(slots);
+      } catch (err) {
+        console.error("Failed to fetch slots:", err);
+        setAvailableSlots([]);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    fetchAvailableSlots();
+  }, [selectedDoctorId, date]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (!selectedDoctor || !date || !timeSlot) {
+    if (!selectedDoctorId || !date || !timeSlot) {
       setError('All fields are required.');
       return;
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/appointments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token,
-        },
-        body: JSON.stringify({ doctor: selectedDoctor, date, timeSlot }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.message || 'Failed to book appointment.');
-      }
-
+      await api.post('/api/appointments', { doctor: selectedDoctorId, date, timeSlot });
       alert('Appointment booked successfully!');
-      onBookingSuccess(); // Callback to refresh the appointments list
-      // Reset form
-      setSelectedDoctor('');
+      onBookingSuccess();
+      setSelectedDoctorId('');
       setDate('');
       setTimeSlot('');
+      setAvailableSlots([]);
     } catch (err) {
       setError(err.message);
     }
   };
-
-  // Example time slots
-  const timeSlots = ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM'];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <p className="text-red-500">{error}</p>}
       <div>
         <label htmlFor="doctor" className="block text-sm font-medium text-gray-700">Doctor</label>
-        <select id="doctor" value={selectedDoctor} onChange={(e) => setSelectedDoctor(e.target.value)} className="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+        <select id="doctor" value={selectedDoctorId} onChange={(e) => setSelectedDoctorId(e.target.value)} className="mt-1 block w-full p-2 border border-gray-300 rounded-md">
           <option value="">Select a Doctor</option>
-          {doctors.map(doc => <option key={doc._id} value={doc._id}>{doc.name}</option>)}
+          {doctors.map(doc => <option key={doc._id} value={doc._id}>{doc.name} - {doc.specialization}</option>)}
         </select>
       </div>
       <div>
         <label htmlFor="date" className="block text-sm font-medium text-gray-700">Date</label>
-        <input type="date" id="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
+        <input 
+          type="date" 
+          id="date" 
+          value={date} 
+          onChange={(e) => setDate(e.target.value)} 
+          className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+          min={new Date().toISOString().split('T')[0]} // Prevent past dates
+        />
       </div>
       <div>
         <label htmlFor="timeSlot" className="block text-sm font-medium text-gray-700">Time Slot</label>
-        <select id="timeSlot" value={timeSlot} onChange={(e) => setTimeSlot(e.target.value)} className="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-          <option value="">Select a Time Slot</option>
-          {timeSlots.map(slot => <option key={slot} value={slot}>{slot}</option>)}
+        <select id="timeSlot" value={timeSlot} onChange={(e) => setTimeSlot(e.target.value)} className="mt-1 block w-full p-2 border border-gray-300 rounded-md" disabled={!selectedDoctorId || !date || loadingSlots}>
+          <option value="">{loadingSlots ? 'Loading...' : 'Select a Time Slot'}</option>
+          {availableSlots.map(slot => <option key={slot} value={slot}>{slot}</option>)}
         </select>
+        {selectedDoctorId && date && !loadingSlots && availableSlots.length === 0 && (
+          <p className="text-sm text-gray-500 mt-1">No available slots for the selected date.</p>
+        )}
       </div>
-      <button type="submit" className="w-full px-4 py-2 font-semibold text-white bg-blue-500 rounded-lg hover:bg-blue-600">Book Now</button>
+      <button type="submit" className="w-full px-4 py-2 font-semibold text-white bg-blue-500 rounded-lg hover:bg-blue-600" disabled={!selectedDoctorId || !date || !timeSlot}>
+        Book Now
+      </button>
     </form>
   );
 };
@@ -77,45 +98,35 @@ export default function PatientDashboard({ user }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/appointments', {
-        headers: { 'x-auth-token': token },
-      });
-      if (!response.ok) throw new Error('Failed to fetch appointments');
-      const data = await response.json();
+      const data = await api.get('/api/appointments');
       setAppointments(data);
     } catch (err) {
-      setError(err.message);
+      // Don't overwrite a more important initial load error
+      if (!error) setError(err.message);
     }
-  };
+  }, [error]);
+
+  const fetchInitialData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [doctorsData, appointmentsData] = await Promise.all([
+        api.get('/api/doctors'),
+        api.get('/api/appointments')
+      ]);
+      setDoctors(doctorsData);
+      setAppointments(appointmentsData);
+    } catch (err) {
+      setError('Failed to fetch initial data. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchInitialData = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem('token');
-        // Fetch doctors
-        const doctorsRes = await fetch('http://localhost:5000/api/doctors', {
-          headers: { 'x-auth-token': token },
-        });
-        if (!doctorsRes.ok) throw new Error('Failed to fetch doctors');
-        const doctorsData = await doctorsRes.json();
-        setDoctors(doctorsData);
-
-        // Fetch initial appointments
-        await fetchAppointments();
-
-      } catch (err) {
-        setError('Failed to fetch initial data. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchInitialData();
-  }, []);
+  }, [fetchInitialData]);
 
   if (loading) return <p>Loading dashboard...</p>;
   if (error) return <p className="text-red-500">{error}</p>;

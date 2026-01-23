@@ -1,3 +1,4 @@
+require('dotenv').config();
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const User = require("./models/User");
@@ -8,25 +9,43 @@ const doctors = [
     email: "emily.carter@example.com",
     password: "Password123",
     role: "DOCTOR",
+    specialization: "Cardiologist",
+    workingHours: {
+      start: "09:00",
+      end: "17:00",
+    },
+    availableTimings: [],
   },
   {
     name: "Dr. Benjamin Lee",
     email: "benjamin.lee@example.com",
     password: "Password123",
     role: "DOCTOR",
+    specialization: "Dermatologist",
+    workingHours: {
+      start: "10:00",
+      end: "18:00",
+    },
+    availableTimings: [],
   },
   {
     name: "Dr. Olivia Rodriguez",
     email: "olivia.rodriguez@example.com",
     password: "Password123",
     role: "DOCTOR",
+    specialization: "Pediatrician",
+    workingHours: {
+      start: "08:00",
+      end: "16:00",
+    },
+    availableTimings: [],
   },
 ];
 
 const seedDatabase = async () => {
   try {
     // Connect to the database
-    await mongoose.connect("mongodb+srv://samyukthaaligate_db_user:your_password_here@cluster0.4lebjsf.mongodb.net/?appName=Cluster0");
+    await mongoose.connect(process.env.MONGO_URI);
 
     // Clear existing doctors to prevent duplicates
     await User.deleteMany({ role: "DOCTOR" });
