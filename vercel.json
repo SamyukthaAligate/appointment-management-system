@@ -5,8 +5,12 @@
   "framework": "create-react-app",
   "rewrites": [
     {
-      "source": "/api/auth/(.*)",
-      "destination": "/api/auth.js"
+      "source": "/api/auth/signup",
+      "destination": "/api/auth/signup.js"
+    },
+    {
+      "source": "/api/auth/login",
+      "destination": "/api/auth/login.js"
     },
     {
       "source": "/api/doctors",
