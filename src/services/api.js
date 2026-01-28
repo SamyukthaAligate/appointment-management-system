@@ -1,4 +1,4 @@
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || '';
 
 // Handle token expiration and redirect to login
 const handleAuthError = (error) => {
@@ -21,7 +21,10 @@ const api = {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    // For Vercel serverless functions, use relative URL
+    const url = API_URL ? `${API_URL}${endpoint}` : `${endpoint}`;
+
+    const response = await fetch(url, {
       ...options,
       headers,
     });

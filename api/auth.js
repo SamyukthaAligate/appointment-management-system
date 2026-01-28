@@ -26,7 +26,7 @@ async function connectToDatabase() {
 }
 
 // JWT Secret
-const JWT_SECRET = "your_super_secret_key_change_this";
+const JWT_SECRET = process.env.JWT_SECRET || "your_super_secret_key_change_this";
 
 module.exports = async (req, res) => {
   await connectToDatabase();
@@ -42,10 +42,11 @@ module.exports = async (req, res) => {
   }
   
   try {
+    const { url } = req;
+    
     if (req.method === 'POST') {
-      const { path } = req;
-      
-      if (path === '/api/auth/signup') {
+      // Handle signup
+      if (url.includes('/api/auth/signup')) {
         const { name, email, password, role } = req.body;
 
         // Validate input
@@ -90,7 +91,8 @@ module.exports = async (req, res) => {
         res.status(201).json(userResponse);
       }
       
-      else if (path === '/api/auth/login') {
+      // Handle login
+      else if (url.includes('/api/auth/login')) {
         const { email, password: plainTextPassword, role } = req.body;
 
         // Validate input
