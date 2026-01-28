@@ -14,8 +14,32 @@ The system follows a role-based architecture with clear separation of concerns:
 │ - User Auth     │    │ - JWT Auth      │    │ - Users         │
 │ - Dashboard     │    │ - API Routes    │    │ - Appointments  │
 │ - Forms         │    │ - Validation    │    │ - Timestamps    │
+│ - Error Boundary│    │ - Error Handling│    │ - Indexes       │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
+
+### Data Flow Diagram
+
+```
+Patient/Doctor ──► Login/Signup ──► JWT Token ──► Dashboard
+     │                                              │
+     ▼                                              ▼
+Book Appointment ──► Check Availability ──► Save to DB
+     │                                              │
+     ▼                                              ▼
+Update Status ──► Business Logic Validation ──► Update DB
+     │                                              │
+     ▼                                              ▼
+Real-time UI Updates ◄─── WebSocket-like Updates ◄─── DB Changes
+```
+
+### Key Architectural Decisions
+
+1. **Centralized API Service**: All HTTP requests go through a unified `api.js` service
+2. **JWT Token Management**: Automatic token refresh and expiration handling
+3. **Error Boundary Pattern**: Prevents app crashes with graceful fallbacks
+4. **Role-Based Authorization**: Middleware-based access control
+5. **Real-time Validation**: Both client-side and server-side validation
 
 ## ✨ Features
 
@@ -30,9 +54,12 @@ The system follows a role-based architecture with clear separation of concerns:
 - **Patient Cancellation**: Patients can cancel pending appointments with business logic validation
 - **Advanced Form Validation**: Real-time client-side validation with specific error messages
 - **Loading States**: Comprehensive loading indicators and disabled button states
+- **Token Expiration Handling**: Automatic logout and redirect when tokens expire
+- **Improved Error Messages**: User-friendly error messages with specific guidance
 - **Error Handling**: Global error boundary for better user experience
 - **Database Timestamps**: Automatic createdAt and updatedAt tracking
 - **Professional UI**: Enhanced status badges with color-coded states
+- **Secure Environment Management**: Proper .env.example and configuration
 
 ### Security & Performance
 - **JWT Authentication**: Secure token-based authentication with proper header handling
@@ -195,6 +222,99 @@ Use these credentials to test the doctor functionality. Password for all account
 - **ESLint**: Code linting
 - **Prettier**: Code formatting
 - **Git**: Version control
+
+## 🧪 Testing Guide
+
+### End-to-End Test Scenarios
+
+#### 1. Patient Registration & Login Flow
+```bash
+# Test Case: Valid Registration
+1. Navigate to signup page
+2. Enter valid email, name (min 2 chars), password (min 6 chars)
+3. Select "PATIENT" role
+4. Submit form → Should redirect to dashboard
+
+# Test Case: Invalid Registration
+1. Enter invalid email format → Should show "Please provide a valid email address"
+2. Enter short password (< 6 chars) → Should show "Password must be at least 6 characters long"
+3. Enter existing email → Should show "Email already registered"
+```
+
+#### 2. Appointment Booking Flow
+```bash
+# Test Case: Successful Booking
+1. Login as patient
+2. Select a doctor from dropdown
+3. Choose a future date
+4. Select available time slot
+5. Submit → Should show "Appointment booked successfully!"
+
+# Test Case: Booking Validation
+1. Try to book past date → Should show "Cannot book appointments for past dates"
+2. Try to book without selecting all fields → Should show "All fields are required"
+3. Try to book already taken slot → Should show "This time slot is already approved"
+```
+
+#### 3. Doctor Status Management
+```bash
+# Test Case: Status Updates
+1. Login as doctor (use provided credentials)
+2. View pending appointments
+3. Change status from PENDING → APPROVED
+4. Try to approve overlapping appointments → Should show conflict error
+5. Change status to COMPLETED or CANCELLED
+```
+
+#### 4. Patient Cancellation
+```bash
+# Test Case: Valid Cancellation
+1. Login as patient
+2. Book an appointment (PENDING status)
+3. Click Cancel button → Should show confirmation dialog
+4. Confirm → Should show "Appointment cancelled successfully!"
+
+# Test Case: Invalid Cancellation
+1. Try to cancel APPROVED appointment → Should show "Cannot cancel an approved appointment"
+2. Try to cancel COMPLETED appointment → Should show "Cannot cancel a completed appointment"
+```
+
+#### 5. Token Expiration Testing
+```bash
+# Test Case: Token Expiry
+1. Login to the system
+2. Wait 1 hour (or modify JWT expiration to 1 minute for testing)
+3. Try to perform any API call
+4. Should automatically redirect to login page
+5. localStorage should be cleared
+```
+
+### Error Scenario Testing
+
+#### Network Errors
+1. Turn off network connection
+2. Try to book appointment
+3. Should show "Unable to book appointment. Please try again later."
+
+#### Authentication Errors
+1. Clear localStorage
+2. Try to access dashboard directly
+3. Should redirect to login page
+
+#### Validation Errors
+1. Test all form validation scenarios
+2. Verify error messages are user-friendly
+3. Check that loading states work properly
+
+### Mobile Responsiveness Testing
+- Test on different screen sizes
+- Verify all buttons and forms are usable on mobile
+- Check that status badges display correctly
+
+### Performance Testing
+- Monitor API response times
+- Check that loading states appear immediately
+- Verify no memory leaks during extended use
 
 ## 🔍 Troubleshooting
 

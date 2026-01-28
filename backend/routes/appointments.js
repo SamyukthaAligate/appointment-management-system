@@ -41,7 +41,20 @@ router.get("/slots/:doctorId/:date", async (req, res) => {
     // Find the doctor to get working hours
     const doctor = await User.findById(doctorId);
     if (!doctor || doctor.role !== 'DOCTOR') {
-      return res.status(404).json({ message: "Doctor not found." });
+      return res.status(404).json({ message: "Doctor not found. Please select a valid doctor." });
+    }
+
+    // Validate date format and ensure it's not in the past
+    const selectedDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (isNaN(selectedDate.getTime())) {
+      return res.status(400).json({ message: "Invalid date format. Please select a valid date." });
+    }
+    
+    if (selectedDate < today) {
+      return res.status(400).json({ message: "Cannot book appointments for past dates. Please select a future date." });
     }
 
     // Generate all possible slots for the day
@@ -61,7 +74,8 @@ router.get("/slots/:doctorId/:date", async (req, res) => {
 
     res.json(availableSlots);
   } catch (error) {
-    res.status(500).json({ message: "Server error while fetching available slots.", error });
+    console.error('Error fetching slots:', error);
+    res.status(500).json({ message: "Unable to fetch available time slots. Please try again later." });
   }
 });
 
@@ -77,6 +91,30 @@ router.post("/", async (req, res) => {
   try {
     const { doctor, date, timeSlot } = req.body;
 
+    // Validate input
+    if (!doctor || !date || !timeSlot) {
+      return res.status(400).json({ message: "All fields are required: doctor, date, and time slot." });
+    }
+
+    // Validate date format and ensure it's not in the past
+    const selectedDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (isNaN(selectedDate.getTime())) {
+      return res.status(400).json({ message: "Invalid date format. Please select a valid date." });
+    }
+    
+    if (selectedDate < today) {
+      return res.status(400).json({ message: "Cannot book appointments for past dates. Please select a future date." });
+    }
+
+    // Verify doctor exists
+    const doctorExists = await User.findById(doctor);
+    if (!doctorExists || doctorExists.role !== 'DOCTOR') {
+      return res.status(400).json({ message: "Invalid doctor selected. Please choose a valid doctor." });
+    }
+
     // Prevent booking if an appointment is already approved for this slot
     const existingAppointment = await Appointment.findOne({
       doctor,
@@ -86,7 +124,7 @@ router.post("/", async (req, res) => {
     });
 
     if (existingAppointment) {
-      return res.status(400).json({ message: 'This time slot is no longer available. Please select another time.' });
+      return res.status(400).json({ message: 'This time slot is already approved and booked. Please select another time.' });
     }
 
     const newAppointment = new Appointment({
@@ -99,10 +137,14 @@ router.post("/", async (req, res) => {
     const savedAppointment = await newAppointment.save();
     res.status(201).json(savedAppointment);
   } catch (error) {
+    console.error('Error booking appointment:', error);
     if (error.code === 11000) { // Handle duplicate key error for unique index
       return res.status(400).json({ message: "This time slot is already booked for the selected doctor." });
     }
-    res.status(500).json({ message: "Server error while booking appointment.", error });
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ message: "Invalid appointment data. Please check all fields and try again." });
+    }
+    res.status(500).json({ message: "Unable to book appointment. Please try again later." });
   }
 });
 
@@ -121,7 +163,8 @@ router.get("/", async (req, res) => {
     }
     res.json(appointments);
   } catch (error) {
-    res.status(500).json({ message: "Server error while fetching appointments.", error });
+    console.error('Error fetching appointments:', error);
+    res.status(500).json({ message: "Unable to fetch appointments. Please try again later." });
   }
 });
 
@@ -143,7 +186,7 @@ router.put("/:id/status", async (req, res) => {
 
     // Ensure the doctor updating the appointment is the one assigned to it
     if (appointment.doctor.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Forbidden: You are not authorized to update this appointment." });
+      return res.status(403).json({ message: "You are not authorized to update this appointment. Only the assigned doctor can make changes." });
     }
 
     // Business rule: Patients cannot cancel an appointment once it is Approved.
@@ -151,7 +194,7 @@ router.put("/:id/status", async (req, res) => {
     if (appointment.status === "APPROVED" && status === "CANCELLED") {
         // A patient might try to call this endpoint, but the role check prevents it.
         // This logic is more for a patient-facing cancel route, but we keep it here for robustness.
-        return res.status(400).json({ message: "Cannot cancel an already approved appointment." });
+        return res.status(400).json({ message: "Cannot cancel an approved appointment. Patients should use the cancel option." });
     }
 
     // Business rule: Doctors cannot approve overlapping appointments
@@ -173,7 +216,8 @@ router.put("/:id/status", async (req, res) => {
     const updatedAppointment = await appointment.save();
     res.json(updatedAppointment);
   } catch (error) {
-    res.status(500).json({ message: "Server error while updating appointment status.", error });
+    console.error('Error updating appointment status:', error);
+    res.status(500).json({ message: "Unable to update appointment status. Please try again later." });
   }
 });
 
@@ -195,12 +239,12 @@ router.delete("/:id", async (req, res) => {
 
     // Ensure the patient cancelling the appointment is the one who booked it
     if (appointment.patient.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Forbidden: You can only cancel your own appointments." });
+      return res.status(403).json({ message: "You can only cancel your own appointments." });
     }
 
     // Business rule: Patients cannot cancel an appointment once it is Approved
     if (appointment.status === "APPROVED") {
-      return res.status(400).json({ message: "Cannot cancel an already approved appointment. Please contact the doctor." });
+      return res.status(400).json({ message: "Cannot cancel an approved appointment. Please contact the doctor directly." });
     }
 
     // Business rule: Cannot cancel completed appointments
@@ -212,7 +256,8 @@ router.delete("/:id", async (req, res) => {
     const cancelledAppointment = await appointment.save();
     res.json({ message: "Appointment cancelled successfully.", appointment: cancelledAppointment });
   } catch (error) {
-    res.status(500).json({ message: "Server error while cancelling appointment.", error });
+    console.error('Error cancelling appointment:', error);
+    res.status(500).json({ message: "Unable to cancel appointment. Please try again later." });
   }
 });
 

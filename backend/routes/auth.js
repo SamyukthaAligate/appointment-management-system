@@ -12,10 +12,27 @@ router.post("/signup", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
+    // Validate input
+    if (!name || name.trim().length < 2) {
+      return res.status(400).json({ message: "Name must be at least 2 characters long." });
+    }
+    
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: "Please provide a valid email address." });
+    }
+    
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters long." });
+    }
+    
+    if (role && !['PATIENT', 'DOCTOR'].includes(role)) {
+      return res.status(400).json({ message: "Invalid role specified." });
+    }
+
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: "User with this email already exists." });
+      return res.status(400).json({ message: "Email already registered. Please use a different email or try logging in." });
     }
 
     // Hash the password
@@ -36,7 +53,11 @@ router.post("/signup", async (req, res) => {
     const { password: _, ...userResponse } = savedUser._doc;
     res.status(201).json(userResponse);
   } catch (error) {
-    res.status(500).json({ message: "Server error during signup.", error });
+    console.error('Signup error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ message: "Invalid data provided. Please check all fields and try again." });
+    }
+    res.status(500).json({ message: "Unable to create account. Please try again later." });
   }
 });
 
@@ -45,16 +66,29 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password: plainTextPassword, role } = req.body;
 
+    // Validate input
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: "Please provide a valid email address." });
+    }
+    
+    if (!plainTextPassword || plainTextPassword.length < 1) {
+      return res.status(400).json({ message: "Password is required." });
+    }
+    
+    if (!role || !['PATIENT', 'DOCTOR'].includes(role)) {
+      return res.status(400).json({ message: "Please select a valid role (Patient or Doctor)." });
+    }
+
     // Find user by email and role
     const user = await User.findOne({ email, role });
     if (!user) {
-      return res.status(401).json({ message: "Invalid credentials." });
+      return res.status(401).json({ message: "No account found with this email and role combination." });
     }
 
     // Compare passwords
     const isMatch = await bcrypt.compare(plainTextPassword, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials." });
+      return res.status(401).json({ message: "Incorrect password. Please try again." });
     }
 
     // Create and sign the JWT
@@ -76,7 +110,8 @@ router.post("/login", async (req, res) => {
       }
     );
   } catch (error) {
-    res.status(500).json({ message: "Server error during login.", error });
+    console.error('Login error:', error);
+    res.status(500).json({ message: "Unable to log in. Please try again later." });
   }
 });
 

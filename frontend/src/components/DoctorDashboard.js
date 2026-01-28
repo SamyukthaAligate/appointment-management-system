@@ -47,7 +47,7 @@ export default function DoctorDashboard({ user }) {
             {appointments.map(appt => (
               <li key={appt._id} className="py-4 flex justify-between items-center">
                 <div>
-                  <p className="font-semibold">Patient: {appt.patient.name}</p>
+                  <p className="font-semibold">Patient: {appt.patient?.name || 'Unknown Patient'}</p>
                   <p className="text-sm text-gray-600">Date: {new Date(appt.date).toLocaleDateString()}</p>
                   <p className="text-sm text-gray-600">Time: {appt.timeSlot}</p>
                 </div>

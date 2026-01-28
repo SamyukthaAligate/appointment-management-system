@@ -1,94 +1,69 @@
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
+// Handle token expiration and redirect to login
+const handleAuthError = (error) => {
+  if (error.status === 401 || error.status === 403) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  }
+};
+
 const api = {
-  async post(endpoint, body) {
+  async request(endpoint, options = {}) {
     const token = localStorage.getItem('token');
     const headers = {
       'Content-Type': 'application/json',
+      ...options.headers,
     };
+    
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
     const response = await fetch(`${API_URL}${endpoint}`, {
-      method: 'POST',
+      ...options,
       headers,
-      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(errorData.message);
+      const error = new Error(errorData.message);
+      error.status = response.status;
+      
+      // Handle authentication errors
+      handleAuthError(error);
+      
+      throw error;
     }
 
     return response.json();
+  },
+
+  async post(endpoint, body) {
+    return this.request(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
   },
 
   async get(endpoint) {
-    const token = localStorage.getItem('token');
-    const headers = {
-      'Content-Type': 'application/json',
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    return this.request(endpoint, {
       method: 'GET',
-      headers,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(errorData.message);
-    }
-
-    return response.json();
   },
   
   async put(endpoint, body) {
-    const token = localStorage.getItem('token');
-    const headers = {
-      'Content-Type': 'application/json',
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    return this.request(endpoint, {
       method: 'PUT',
-      headers,
       body: JSON.stringify(body),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(errorData.message);
-    }
-
-    return response.json();
   },
 
   async delete(endpoint) {
-    const token = localStorage.getItem('token');
-    const headers = {
-      'Content-Type': 'application/json',
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    return this.request(endpoint, {
       method: 'DELETE',
-      headers,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(errorData.message);
-    }
-
-    return response.json();
   },
 };
 
