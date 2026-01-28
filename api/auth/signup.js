@@ -13,6 +13,10 @@ async function connectToDatabase() {
   if (cached.conn) return cached.conn;
   
   if (!cached.promise) {
+    if (!process.env.MONGO_URI) {
+      throw new Error('MONGO_URI environment variable is not set');
+    }
+    
     const opts = {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -26,8 +30,6 @@ async function connectToDatabase() {
 }
 
 module.exports = async (req, res) => {
-  await connectToDatabase();
-  
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -40,7 +42,11 @@ module.exports = async (req, res) => {
   
   if (req.method === 'POST') {
     try {
+      await connectToDatabase();
+      
       const { name, email, password, role } = req.body;
+
+      console.log('Signup request:', { name, email, role });
 
       // Validate input
       if (!name || name.trim().length < 2) {
@@ -81,11 +87,12 @@ module.exports = async (req, res) => {
 
       // Respond without the password
       const { password: _, ...userResponse } = savedUser._doc;
+      console.log('User created successfully:', userResponse);
       res.status(201).json(userResponse);
       
     } catch (error) {
       console.error('Signup error:', error);
-      res.status(500).json({ message: "Unable to process request. Please try again later." });
+      res.status(500).json({ message: "Unable to process request. Please try again later.", error: error.message });
     }
   } else {
     res.status(405).json({ message: 'Method not allowed' });
