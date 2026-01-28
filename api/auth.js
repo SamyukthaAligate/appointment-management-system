@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../backend/models/User');
+const User = require('./models/User');
 
 // Connect to MongoDB
 let cached = global.mongo;
@@ -47,9 +47,15 @@ module.exports = async (req, res) => {
     await connectToDatabase();
     
     const { url } = req;
+    console.log('=== AUTH API DEBUG ===');
     console.log('Request URL:', url);
     console.log('Request method:', req.method);
     console.log('Request body:', req.body);
+    console.log('Environment variables:', {
+      MONGO_URI: process.env.MONGO_URI ? 'SET' : 'NOT SET',
+      JWT_SECRET: process.env.JWT_SECRET ? 'SET' : 'NOT SET'
+    });
+    console.log('===================');
     
     if (req.method === 'POST') {
       // Handle signup
@@ -154,16 +160,21 @@ module.exports = async (req, res) => {
       }
       
       else {
+        console.log('Endpoint not found. URL:', url);
         res.status(404).json({ message: "Endpoint not found. Use /api/auth/signup or /api/auth/login" });
       }
     }
     
     else {
+      console.log('Method not allowed:', req.method);
       res.status(405).json({ message: 'Method not allowed' });
     }
     
   } catch (error) {
-    console.error('Auth error:', error);
+    console.error('=== AUTH ERROR ===');
+    console.error('Error details:', error);
+    console.error('Stack trace:', error.stack);
+    console.error('==================');
     res.status(500).json({ message: "Unable to process request. Please try again later.", error: error.message });
   }
 };

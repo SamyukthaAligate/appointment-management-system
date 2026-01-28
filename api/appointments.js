@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const Appointment = require('../backend/models/Appointment');
-const User = require('../backend/models/User');
+const Appointment = require('./models/Appointment');
+const User = require('./models/User');
 
 // Connect to MongoDB
 let cached = global.mongo;

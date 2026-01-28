@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const User = require('../backend/models/User');
+const User = require('./models/User');
 
 // Connect to MongoDB
 let cached = global.mongo;
