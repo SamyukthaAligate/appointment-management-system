@@ -13,6 +13,10 @@ async function connectToDatabase() {
   if (cached.conn) return cached.conn;
   
   if (!cached.promise) {
+    if (!process.env.MONGO_URI) {
+      throw new Error('MONGO_URI environment variable is not set');
+    }
+    
     const opts = {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -29,8 +33,6 @@ async function connectToDatabase() {
 const JWT_SECRET = process.env.JWT_SECRET || "your_super_secret_key_change_this";
 
 module.exports = async (req, res) => {
-  await connectToDatabase();
-  
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -42,12 +44,19 @@ module.exports = async (req, res) => {
   }
   
   try {
+    await connectToDatabase();
+    
+    const { url } = req;
+    console.log('Request URL:', url);
+    console.log('Request method:', req.method);
+    console.log('Request body:', req.body);
+    
     if (req.method === 'POST') {
-      const { query } = req;
-      
-      // Handle signup - /api/auth/signup
-      if (query.signup !== undefined) {
+      // Handle signup
+      if (url.includes('/api/auth/signup') || req.body.action === 'signup') {
         const { name, email, password, role } = req.body;
+
+        console.log('Signup request:', { name, email, role });
 
         // Validate input
         if (!name || name.trim().length < 2) {
@@ -88,12 +97,15 @@ module.exports = async (req, res) => {
 
         // Respond without the password
         const { password: _, ...userResponse } = savedUser._doc;
+        console.log('User created successfully:', userResponse);
         res.status(201).json(userResponse);
       }
       
-      // Handle login - /api/auth/login
-      else {
+      // Handle login
+      else if (url.includes('/api/auth/login') || req.body.action === 'login') {
         const { email, password: plainTextPassword, role } = req.body;
+
+        console.log('Login request:', { email, role });
 
         // Validate input
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -135,13 +147,23 @@ module.exports = async (req, res) => {
           (err, token) => {
             if (err) throw err;
             const { password: _, ...userResponse } = user._doc;
+            console.log('Login successful:', userResponse);
             res.json({ token, user: userResponse });
           }
         );
       }
+      
+      else {
+        res.status(404).json({ message: "Endpoint not found. Use /api/auth/signup or /api/auth/login" });
+      }
     }
+    
+    else {
+      res.status(405).json({ message: 'Method not allowed' });
+    }
+    
   } catch (error) {
     console.error('Auth error:', error);
-    res.status(500).json({ message: "Unable to process request. Please try again later." });
+    res.status(500).json({ message: "Unable to process request. Please try again later.", error: error.message });
   }
 };
