@@ -3,20 +3,6 @@
   "outputDirectory": "build",
   "installCommand": "npm install",
   "framework": "create-react-app",
-  "functions": {
-    "api/auth/signup.js": {
-      "runtime": "nodejs18.x"
-    },
-    "api/auth/login.js": {
-      "runtime": "nodejs18.x"
-    },
-    "api/doctors.js": {
-      "runtime": "nodejs18.x"
-    },
-    "api/appointments.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/auth/signup",
