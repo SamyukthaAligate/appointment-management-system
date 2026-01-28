@@ -1,8 +1,16 @@
 {
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "source": "/api/auth/(.*)",
+      "destination": "/api/auth.js"
+    },
+    {
+      "source": "/api/doctors",
+      "destination": "/api/doctors.js"
+    },
+    {
+      "source": "/api/appointments/(.*)",
+      "destination": "/api/appointments.js"
     },
     {
       "source": "/(.*)",

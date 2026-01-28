@@ -42,11 +42,11 @@ module.exports = async (req, res) => {
   }
   
   try {
-    const { url } = req;
-    
     if (req.method === 'POST') {
-      // Handle signup
-      if (url.includes('/api/auth/signup')) {
+      const { query } = req;
+      
+      // Handle signup - /api/auth/signup
+      if (query.signup !== undefined) {
         const { name, email, password, role } = req.body;
 
         // Validate input
@@ -91,8 +91,8 @@ module.exports = async (req, res) => {
         res.status(201).json(userResponse);
       }
       
-      // Handle login
-      else if (url.includes('/api/auth/login')) {
+      // Handle login - /api/auth/login
+      else {
         const { email, password: plainTextPassword, role } = req.body;
 
         // Validate input

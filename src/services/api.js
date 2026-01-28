@@ -24,6 +24,8 @@ const api = {
     // For Vercel serverless functions, use relative URL
     const url = API_URL ? `${API_URL}${endpoint}` : `${endpoint}`;
 
+    console.log('API Request:', url, options);
+
     const response = await fetch(url, {
       ...options,
       headers,
