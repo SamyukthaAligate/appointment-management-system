@@ -10,24 +10,26 @@ import ErrorBoundary from "./components/ErrorBoundary";
 
 function App() {
   return (
-    <ErrorBoundary>
-      <Router>
-        <Suspense fallback={<div>Loading...</div>}>
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } 
-            />
-          </Routes>
-        </Suspense>
-      </Router>
-    </ErrorBoundary>
+    <div className="min-h-screen w-full">
+      <ErrorBoundary>
+        <Router>
+          <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Loading...</div>}>
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+            </Routes>
+          </Suspense>
+        </Router>
+      </ErrorBoundary>
+    </div>
   );
 }
 
