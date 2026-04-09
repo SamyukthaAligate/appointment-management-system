@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { useToast } from "../components/ToastContext";
 
 export default function Signup() {
   const [name, setName] = useState("");
@@ -9,30 +10,23 @@ export default function Signup() {
   const [role, setRole] = useState("PATIENT");
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-
-    const navigate = useNavigate();
+  
+  const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const validateForm = () => {
     const newErrors = {};
     
-    if (!name.trim()) {
-      newErrors.name = "Name is required";
-    } else if (name.length < 2) {
-      newErrors.name = "Name must be at least 2 characters";
-    }
+    if (!name.trim()) newErrors.name = "Name is required";
+    else if (name.length < 2) newErrors.name = "Name must be at least 2 characters";
     
-    if (!email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = "Email address is invalid";
-    }
+    if (!email.trim()) newErrors.email = "Email is required";
+    else if (!/^\S+@\S+\.\S+$/.test(email)) newErrors.email = "Email address is invalid";
     
-    if (!password) {
-      newErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-      newErrors.password = "Password must contain at least one uppercase letter, one lowercase letter, and one number";
+    if (!password) newErrors.password = "Password is required";
+    else if (password.length < 6) newErrors.password = "Password must be at least 6 characters";
+    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      newErrors.password = "Password requires uppercase, lowercase, and number";
     }
     
     setErrors(newErrors);
@@ -40,21 +34,19 @@ export default function Signup() {
   };
 
   const signup = async () => {
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
     try {
       await api.post('/api/auth/signup', { name, email, password, role });
-      alert("Signup successful! You can now log in.");
-      navigate('/'); // Redirect to login page
+      showToast("Account created successfully! Please log in.", "success");
+      navigate('/');
     } catch (error) {
       console.error("Signup error:", error);
       if (error.message.includes('Email already exists')) {
         setErrors({ email: 'Email already registered' });
       } else {
-        alert(`Signup failed: ${error.message}`);
+        showToast(`Signup failed: ${error.message}`, "error");
       }
     } finally {
       setIsLoading(false);
@@ -62,77 +54,98 @@ export default function Signup() {
   };
 
   return (
-    <div 
-      className="min-h-screen bg-cover bg-center flex items-center justify-center"
-      style={{ backgroundImage: "url('https://images.pexels.com/photos/4021775/pexels-photo-4021775.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')" }}
-    >
-      <div className="w-full max-w-md p-8 space-y-6 bg-white bg-opacity-20 backdrop-blur-lg rounded-xl shadow-2xl">
-        <h2 className="text-3xl font-bold text-center text-gray-800">Create Account</h2>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-800 to-pink-900 flex items-center justify-center p-4">
+      
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
+        <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-4000"></div>
+      </div>
+
+      <div className="w-full max-w-md p-10 space-y-6 glass-panel relative z-10 transition-all duration-500 hover:shadow-2xl hover:shadow-lg">
+        <div className="text-center">
+          <h2 className="text-4xl font-extrabold premium-gradient-text tracking-tight">Create Account</h2>
+          <p className="text-gray-500 mt-2 font-medium">Join our appointment network.</p>
+        </div>
+        
         <div className="space-y-4">
           <div>
-            <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-700">Full Name</label>
+            <label htmlFor="name" className="block mb-1 text-sm font-semibold text-gray-700 uppercase tracking-wide">Full Name</label>
             <input 
               id="name"
               type="text" 
               placeholder="John Doe" 
               value={name}
               onChange={e => setName(e.target.value)} 
-              className={`w-full px-4 py-2 text-gray-700 bg-white bg-opacity-50 border rounded-lg focus:ring-blue-500 focus:border-blue-500 ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-3 bg-white bg-opacity-50 border rounded-xl focus:ring-4 focus:ring-purple-500 ring-opacity-20 transition-all shadow-sm outline-none placeholder:text-gray-400 font-medium ${
+                errors.name ? 'border-red-500 focus:border-red-500' : 'border-purple-100 focus:border-purple-500'
               }`}
             />
-            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+            {errors.name && <p className="text-red-500 text-xs font-semibold mt-1 animate-pulse">{errors.name}</p>}
           </div>
           <div>
-            <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-700">Email Address</label>
+            <label htmlFor="email" className="block mb-1 text-sm font-semibold text-gray-700 uppercase tracking-wide">Email</label>
             <input 
               id="email"
               type="email" 
-              placeholder="your.email@example.com" 
+              placeholder="you@example.com" 
               value={email}
               onChange={e => setEmail(e.target.value)} 
-              className={`w-full px-4 py-2 text-gray-700 bg-white bg-opacity-50 border rounded-lg focus:ring-blue-500 focus:border-blue-500 ${
-                errors.email ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-3 bg-white bg-opacity-50 border rounded-xl focus:ring-4 focus:ring-purple-500 ring-opacity-20 transition-all shadow-sm outline-none placeholder:text-gray-400 font-medium ${
+                errors.email ? 'border-red-500 focus:border-red-500' : 'border-purple-100 focus:border-purple-500'
               }`}
             />
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+            {errors.email && <p className="text-red-500 text-xs font-semibold mt-1 animate-pulse">{errors.email}</p>}
           </div>
           <div>
-            <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-700">Password</label>
+            <label htmlFor="password" className="block mb-1 text-sm font-semibold text-gray-700 uppercase tracking-wide">Password</label>
             <input 
               id="password"
               type="password" 
               placeholder="••••••••" 
               value={password}
               onChange={e => setPassword(e.target.value)} 
-              className={`w-full px-4 py-2 text-gray-700 bg-white bg-opacity-50 border rounded-lg focus:ring-blue-500 focus:border-blue-500 ${
-                errors.password ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-3 bg-white bg-opacity-50 border rounded-xl focus:ring-4 focus:ring-purple-500 ring-opacity-20 transition-all shadow-sm outline-none placeholder:text-gray-400 font-medium ${
+                errors.password ? 'border-red-500 focus:border-red-500' : 'border-purple-100 focus:border-purple-500'
               }`}
             />
-            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+            {errors.password && <p className="text-red-500 text-xs font-semibold mt-1 animate-pulse">{errors.password}</p>}
           </div>
           <div>
-            <label htmlFor="role" className="block mb-2 text-sm font-medium text-gray-700">I am a...</label>
-            <select 
-              id="role"
-              onChange={e => setRole(e.target.value)} 
-              className="w-full px-4 py-2 text-gray-700 bg-white bg-opacity-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="PATIENT">Patient</option>
-              <option value="DOCTOR">Doctor</option>
-            </select>
+            <label htmlFor="role" className="block mb-1 text-sm font-semibold text-gray-700 uppercase tracking-wide">Account Type</label>
+            <div className="relative">
+              <select 
+                id="role"
+                onChange={e => setRole(e.target.value)} 
+                className="w-full px-4 py-3 bg-white bg-opacity-50 border border-purple-100 rounded-xl appearance-none focus:ring-4 focus:ring-purple-500 ring-opacity-20 focus:border-purple-500 transition-all shadow-sm outline-none font-medium cursor-pointer"
+              >
+                <option value="PATIENT">Patient</option>
+                <option value="DOCTOR">Doctor</option>
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
           </div>
         </div>
+        
         <button 
           onClick={signup} 
           disabled={isLoading}
-          className="w-full px-4 py-2 font-semibold text-white bg-blue-500 bg-opacity-70 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-4 py-3 font-bold text-white premium-gradient rounded-xl hover:opacity-90 focus:outline-none focus:ring-4 focus:ring-purple-500 ring-opacity-30 transition-all duration-300 transform hover:-translate-y-0.5 shadow-lg flex justify-center items-center gap-2 mt-2 disabled:opacity-70 disabled:hover:translate-y-0"
         >
-          {isLoading ? 'Signing Up...' : 'Sign Up'}
+          {isLoading ? (
+            <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          ) : null}
+          {isLoading ? 'Creating...' : 'Sign Up'}
         </button>
-        <p className="text-sm text-center text-gray-700">
+        
+        <p className="text-sm text-center text-gray-600 font-medium">
           Already have an account?{" "}
-          <Link to="/" className="font-medium text-blue-600 hover:underline">Login here</Link>
+          <Link to="/" className="font-bold text-purple-600 hover:text-purple-800 transition-colors">Login here</Link>
         </p>
       </div>
     </div>

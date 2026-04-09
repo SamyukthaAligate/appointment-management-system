@@ -2,6 +2,7 @@ require('dotenv').config();
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const User = require("./models/User");
+const Appointment = require("./models/Appointment");
 
 const doctors = [
   {
@@ -50,6 +51,18 @@ const seedDatabase = async () => {
     // Clear existing doctors to prevent duplicates
     await User.deleteMany({ role: "DOCTOR" });
     console.log("Cleared existing doctor data.");
+
+    // Clear appointments and indexes to apply the new partial indexes cleanly
+    try {
+      await mongoose.connection.collection('appointments').drop();
+      console.log("Cleared existing appointments collection to reset indexes.");
+    } catch (e) {
+      if (e.code !== 26) { // 26 is namespace not found
+        console.error("Warning when dropping appointments:", e.message);
+      }
+    }
+    // ensure new indexes are built
+    await Appointment.init();
 
     // Hash passwords and create new doctor users
     const createdDoctors = await Promise.all(

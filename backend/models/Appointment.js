@@ -13,7 +13,10 @@ const AppointmentSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-AppointmentSchema.index({ doctor: 1, date: 1, timeSlot: 1 }, { unique: true });
+AppointmentSchema.index(
+  { doctor: 1, date: 1, timeSlot: 1 }, 
+  { unique: true, partialFilterExpression: { status: { $in: ["PENDING", "APPROVED"] } } }
+);
 AppointmentSchema.index({ patient: 1 });
 AppointmentSchema.index({ doctor: 1 });
 
