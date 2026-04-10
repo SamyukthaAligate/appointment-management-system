@@ -1,1 +1,12 @@
-{"buildCommand": "npm run build", "outputDirectory": "build", "installCommand": "npm install", "framework": "create-react-app", "rewrites": [{"source": "/api/auth/(.*)", "destination": "/api/auth.js"}, {"source": "/api/doctors", "destination": "/api/doctors.js"}, {"source": "/api/appointments/(.*)", "destination": "/api/appointments.js"}, {"source": "/(.*)", "destination": "/index.html"}]}
+{
+  "version": 2,
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/build",
+  "installCommand": "cd frontend && npm install",
+  "rewrites": [
+    { "source": "/api/auth/(.*)", "destination": "/api/auth.js" },
+    { "source": "/api/doctors", "destination": "/api/doctors.js" },
+    { "source": "/api/appointments/(.*)", "destination": "/api/appointments.js" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
